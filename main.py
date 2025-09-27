@@ -1,1 +1,1 @@
-print('Hello MIET')
+print('Hello MIET from master')
