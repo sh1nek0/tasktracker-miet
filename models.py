@@ -18,6 +18,7 @@ class Priority(Enum):
     LOW = "низкий"
     MEDIUM = "средний"
     HIGH = "высокий"
+    CANCELLED = "отменена"
 
 # модель задачи
 @dataclass # для автоматического создания конструктора и методов.
@@ -30,6 +31,7 @@ class Task:
     created_date: str
     due_date: str
     completed_date: Optional[str] = None
+    reminder_date: str = ""
 
     # проверка просрочки задачи
     def is_overdue(self) -> bool:
