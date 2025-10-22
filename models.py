@@ -30,6 +30,7 @@ class Task:
     created_date: str
     due_date: str
     completed_date: Optional[str] = None
+    reminder_date: str = ""
 
     # проверка просрочки задачи
     def is_overdue(self) -> bool:
@@ -48,7 +49,8 @@ class Task:
             'status': self.status.value,
             'created_date': self.created_date,
             'due_date': self.due_date,
-            'completed_date': self.completed_date
+            'completed_date': self.completed_date,
+            'reminder_date': self.reminder_date
         }
 
     @classmethod
