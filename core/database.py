@@ -1,7 +1,7 @@
 import sqlite3
 import logging
 from typing import List, Optional
-from models import Task, Status, Priority
+from core.models import Task, Status
 
 logger = logging.getLogger(__name__)
 
