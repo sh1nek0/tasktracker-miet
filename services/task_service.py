@@ -3,8 +3,8 @@ import os
 import sys
 from datetime import datetime
 from typing import List, Optional
-from ..core.models import Task, Status, Priority
-from ..core.database import Database
+from core.models import Task, Status, Priority
+from core.database import Database
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 

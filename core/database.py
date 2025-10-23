@@ -12,19 +12,21 @@ class Database:
         self._init_db()
 
     def _init_db(self) -> None:
+        """Инициализация базы данных"""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS tasks (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        title TEXT NOT NULL,
-                        description TEXT,
-                        priority TEXT NOT NULL,
-                        status TEXT NOT NULL,
+                        title TEXT NOT NULL CHECK(length(title) <= 500),
+                        description TEXT CHECK(description IS NULL OR length(description) <= 2000),
+                        priority TEXT NOT NULL CHECK(priority IN ('низкий', 'средний', 'высокий')),
+                        status TEXT NOT NULL CHECK(status IN ('Запланирована', 'В работе', 'Выполнена')),
                         created_date TEXT NOT NULL,
                         due_date TEXT NOT NULL,
-                        completed_date TEXT
+                        completed_date TEXT,
+                        CHECK (due_date IS NULL OR due_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]')
                     )
                 ''')
                 conn.commit()

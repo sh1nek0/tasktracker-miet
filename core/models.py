@@ -5,9 +5,9 @@ from typing import Optional
 
 # статусы задач
 class Status(Enum):
-    PLANNED = "Запланировано"
+    PLANNED = "Запланирована"
     IN_PROGRESS = "В работе"
-    COMPLETED = "Выполнено"
+    COMPLETED = "Выполнена"
 
     @classmethod
     def get_all(cls):
