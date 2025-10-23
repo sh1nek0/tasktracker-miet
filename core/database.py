@@ -12,7 +12,6 @@ class Database:
         self._init_db()
 
     def _init_db(self) -> None:
-        """Инициализация базы данных"""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -26,11 +25,12 @@ class Database:
                         created_date TEXT NOT NULL,
                         due_date TEXT NOT NULL,
                         completed_date TEXT,
+                        reminder_date TEXT,
+                        reminder_sent BOOLEAN DEFAULT 0,
                         CHECK (due_date IS NULL OR due_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]')
-                    )
+                )
                 ''')
                 conn.commit()
-                logger.info("База данных инициализирована")
         except sqlite3.Error as e:
             logger.error(f"Ошибка инициализации БД: {e}")
             raise
@@ -40,16 +40,14 @@ class Database:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
-                    INSERT INTO tasks (title, description, priority, status, created_date, due_date, completed_date)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO tasks (title, description, priority, status, created_date, due_date, completed_date, reminder_date, reminder_sent)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     task.title, task.description, task.priority.value,
                     task.status.value, task.created_date, task.due_date,
-                    task.completed_date
+                    task.completed_date, task.reminder_date, task.reminder_sent
                 ))
-                task_id = cursor.lastrowid
-                conn.commit()
-                return task_id
+                return cursor.lastrowid
         except sqlite3.Error as e:
             logger.error(f"Ошибка создания задачи: {e}")
             raise
@@ -69,7 +67,9 @@ class Database:
                         'status': row[4],
                         'created_date': row[5],
                         'due_date': row[6],
-                        'completed_date': row[7]
+                        'completed_date': row[7],
+                        'reminder_date': row[8],
+                        'reminder_sent': bool(row[9])
                     }
                     tasks.append(Task.from_dict(task_dict))
                 return tasks
@@ -83,11 +83,13 @@ class Database:
                 cursor = conn.cursor()
                 cursor.execute('''
                     UPDATE tasks 
-                    SET title=?, description=?, priority=?, status=?, due_date=?, completed_date=?
+                    SET title=?, description=?, priority=?, status=?, 
+                        due_date=?, completed_date=?, reminder_date=?, reminder_sent=?
                     WHERE id=?
                 ''', (
                     task.title, task.description, task.priority.value,
                     task.status.value, task.due_date, task.completed_date,
+                    task.reminder_date, task.reminder_sent,
                     task.id
                 ))
                 conn.commit()
@@ -129,7 +131,9 @@ class Database:
                         'status': row[4],
                         'created_date': row[5],
                         'due_date': row[6],
-                        'completed_date': row[7]
+                        'completed_date': row[7],
+                        'reminder_date': row[8],  # ДОБАВИТЬ
+                        'reminder_sent': bool(row[9])  # ДОБАВИТЬ
                     }
                     return Task.from_dict(task_dict)
                 return None
@@ -152,7 +156,9 @@ class Database:
                         'status': row[4],
                         'created_date': row[5],
                         'due_date': row[6],
-                        'completed_date': row[7]
+                        'completed_date': row[7],
+                        'reminder_date': row[8],  # ДОБАВИТЬ
+                        'reminder_sent': bool(row[9])  # ДОБАВИТЬ
                     }
                     tasks.append(Task.from_dict(task_dict))
                 return tasks
