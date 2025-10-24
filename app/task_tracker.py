@@ -24,7 +24,7 @@ class TaskTracker:
     def setup_gui(self):
         self.root = tk.Tk()
         self.root.title("Task Tracker")
-        self.root.geometry("800x600")
+        self.root.geometry("1280x680")
 
         # Создаем интерфейс
         self.create_widgets()
