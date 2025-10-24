@@ -1,4 +1,6 @@
 import unittest
+import os
+import tempfile
 from datetime import datetime
 from core.models import Task, Status, Priority
 from core.database import Database
@@ -8,8 +10,19 @@ from services.task_service import TaskService
 class TestTaskService(unittest.TestCase):
 
     def setUp(self):
-        self.db = Database("task.db")  # In-memory база для тестов
+        # Создаем временную базу данных для каждого теста
+        import tempfile
+        self.temp_db = tempfile.mktemp(suffix='.db')
+        self.db = Database(self.temp_db)
         self.task_service = TaskService(self.db)
+    
+    def tearDown(self):
+        # Удаляем временную базу данных
+        try:
+            if hasattr(self, 'temp_db') and os.path.exists(self.temp_db):
+                os.unlink(self.temp_db)
+        except:
+            pass  # Игнорируем ошибки при удалении
 
 # тест создания задачи
     def test_create_task_success(self):
@@ -56,11 +69,11 @@ class TestTaskService(unittest.TestCase):
         )
 
         # Отмечаем как выполненную
-        success = self.task_service.mark_task_completed(task.id)
+        success = self.task_service.complete_task(task.id)
         self.assertTrue(success)
 
         # Проверяем что статус изменился
-        updated_task = self.task_service.get_task_by_id(task.id)
+        updated_task = self.task_service.get_task(task.id)
         self.assertEqual(updated_task.status, Status.COMPLETED)
         self.assertIsNotNone(updated_task.completed_date)
 
@@ -78,7 +91,7 @@ class TestTaskService(unittest.TestCase):
         self.assertTrue(success)
 
         # Проверяем что задача удалена
-        deleted_task = self.task_service.get_task_by_id(task.id)
+        deleted_task = self.task_service.get_task(task.id)
         self.assertIsNone(deleted_task)
 
 # тест фильтр по статусу
@@ -88,7 +101,7 @@ class TestTaskService(unittest.TestCase):
         task2 = self.task_service.create_task("Задача 2", "Описание", Priority.MEDIUM, "2025-12-31")
 
         # Отмечаем одну как выполненную
-        self.task_service.mark_task_completed(task1.id)
+        self.task_service.complete_task(task1.id)
 
         # Фильтруем по статусу
         all_tasks = self.task_service.get_all_tasks()
@@ -107,12 +120,12 @@ class TestTaskService(unittest.TestCase):
         )
 
         # Поиск по названию
-        results = self.task_service.search_tasks("Уникальное")
+        results = self.task_service.search("Уникальное")
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].id, task.id)
 
         # Поиск по описанию
-        results = self.task_service.search_tasks("Обычное")
+        results = self.task_service.search("Обычное")
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].id, task.id)
 
@@ -126,7 +139,7 @@ class TestTaskService(unittest.TestCase):
             "2020-01-01"  # Прошлая дата
         )
 
-        overdue_tasks = self.task_service.get_overdue_tasks()
+        overdue_tasks = self.task_service.get_overdue()
         self.assertTrue(len(overdue_tasks) >= 1)
         self.assertTrue(overdue_task.is_overdue())
 
