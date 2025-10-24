@@ -14,6 +14,11 @@ class TaskTracker:
         self.db = Database("data/tasks.db")
         self.task_service = TaskService(self.db)
         self.notification_service = NotificationService(self.task_service)
+        
+        # Переменные для сортировки и фильтрации
+        self.sort_by_due_date = False
+        self.priority_filter = None
+        
         self.setup_gui()
 
     def setup_gui(self):
@@ -40,6 +45,10 @@ class TaskTracker:
                    command=self.delete_task).pack(side=tk.LEFT, padx=5)
         ttk.Button(control_frame, text="Просроченные",
                    command=self.show_overdue_notifications).pack(side=tk.LEFT, padx=5)
+        ttk.Button(control_frame, text="Сортировка по сроку",
+                   command=self.toggle_sort_by_due_date).pack(side=tk.LEFT, padx=5)
+        ttk.Button(control_frame, text="Фильтр по приоритету",
+                   command=self.toggle_priority_filter).pack(side=tk.LEFT, padx=5)
         ttk.Button(control_frame, text="Обновить",
                    command=self.refresh_tasks).pack(side=tk.LEFT, padx=5)
 
@@ -52,6 +61,23 @@ class TaskTracker:
 
         self.tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
+    def toggle_sort_by_due_date(self):
+        """Переключает сортировку по дате срока"""
+        self.sort_by_due_date = not self.sort_by_due_date
+        self.refresh_tasks()
+
+    def toggle_priority_filter(self):
+        """Переключает фильтр по приоритету: Все -> Высокий -> Средний -> Низкий -> Все"""
+        if self.priority_filter is None:
+            self.priority_filter = Priority.HIGH
+        elif self.priority_filter == Priority.HIGH:
+            self.priority_filter = Priority.MEDIUM
+        elif self.priority_filter == Priority.MEDIUM:
+            self.priority_filter = Priority.LOW
+        else:
+            self.priority_filter = None
+        self.refresh_tasks()
+
     def refresh_tasks(self):
         # Очищаем список
         for item in self.tree.get_children():
@@ -59,6 +85,16 @@ class TaskTracker:
 
         # Загружаем задачи
         tasks = self.task_service.get_all_tasks()
+        
+        # Применяем фильтрацию по приоритету если включена
+        if self.priority_filter:
+            tasks = self.task_service.filter_tasks(tasks, priority=self.priority_filter)
+        
+        # Применяем сортировку по дате срока если включена
+        if self.sort_by_due_date:
+            tasks = self.task_service.sort_tasks(tasks, "due_date")
+        
+        # Отображаем задачи
         for task in tasks:
             status_text = task.status.value
             if task.is_overdue() and task.status.value != "Выполнена":

@@ -136,9 +136,13 @@ class TaskService:
             return tasks
 
         if by == "due_date":
-            return sorted(tasks, key=lambda x: x.due_date)
+            return sorted(tasks, key=lambda x: datetime.strptime(x.due_date, '%d.%m.%Y'))
+        elif by == "due_date_desc":
+            return sorted(tasks, key=lambda x: datetime.strptime(x.due_date, '%d.%m.%Y'), reverse=True)
         elif by == "priority":
             priority_order = {Priority.HIGH: 0, Priority.MEDIUM: 1, Priority.LOW: 2}
             return sorted(tasks, key=lambda x: priority_order[x.priority])
+        elif by == "created_date":
+            return sorted(tasks, key=lambda x: datetime.strptime(x.created_date, '%d.%m.%Y'), reverse=True)
         else:  # created_date по умолчанию
-            return sorted(tasks, key=lambda x: x.created_date, reverse=True)
+            return sorted(tasks, key=lambda x: datetime.strptime(x.created_date, '%d.%m.%Y'), reverse=True)
