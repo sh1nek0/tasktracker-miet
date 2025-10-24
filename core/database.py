@@ -27,7 +27,7 @@ class Database:
                         completed_date TEXT,
                         reminder_date TEXT,
                         reminder_sent BOOLEAN DEFAULT 0,
-                        CHECK (due_date IS NULL OR due_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]')
+                        CHECK (due_date IS NULL OR due_date GLOB '[0-9][0-9].[0-9][0-9].[0-9][0-9][0-9][0-9]')
                 )
                 ''')
                 conn.commit()

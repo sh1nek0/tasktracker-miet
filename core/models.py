@@ -52,14 +52,14 @@ class Task:
         if self.status == Status.COMPLETED or not self.reminder_date:
             return False
 
-        reminder_dt = datetime.strptime(self.reminder_date, '%Y-%m-%d')
+        reminder_dt = datetime.strptime(self.reminder_date, '%d.%m.%Y')
         now = datetime.now()
         return reminder_dt <= now and not self.reminder_sent
 
     def is_overdue(self) -> bool:
         if self.status == Status.COMPLETED:
             return False
-        due_date = datetime.strptime(self.due_date, '%Y-%m-%d')
+        due_date = datetime.strptime(self.due_date, '%d.%m.%Y')
         return due_date < datetime.now()
 
     @classmethod

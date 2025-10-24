@@ -95,7 +95,7 @@ class TaskTracker:
         priority_combo.grid(row=2, column=1, padx=5, pady=5, sticky="w")
 
         # Срок выполнения
-        ttk.Label(dialog, text="Срок (ГГГГ-ММ-ДД):").grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        ttk.Label(dialog, text="Срок (ДД.ММ.ГГГГ):").grid(row=3, column=0, padx=5, pady=5, sticky="w")
         due_entry = ttk.Entry(dialog, width=40)
         due_entry.grid(row=3, column=1, padx=5, pady=5)
 
@@ -175,7 +175,7 @@ class TaskTracker:
         status_combo.grid(row=3, column=1, padx=5, pady=5, sticky="w")
 
         # Срок выполнения
-        ttk.Label(dialog, text="Срок (ГГГГ-ММ-ДД):").grid(row=4, column=0, padx=5, pady=5, sticky="w")
+        ttk.Label(dialog, text="Срок (ДД.ММ.ГГГГ):").grid(row=4, column=0, padx=5, pady=5, sticky="w")
         due_entry = ttk.Entry(dialog, width=40)
         due_entry.grid(row=4, column=1, padx=5, pady=5)
         due_entry.insert(0, task_to_edit.due_date)
@@ -202,7 +202,7 @@ class TaskTracker:
                 # Если статус изменился на "Выполнена", устанавливаем дату выполнения
                 if status == "Выполнена" and not task_to_edit.completed_date:
                     from datetime import datetime
-                    task_to_edit.completed_date = datetime.now().strftime('%Y-%m-%d')
+                    task_to_edit.completed_date = datetime.now().strftime('%d.%m.%Y')
                 elif status != "Выполнена":
                     task_to_edit.completed_date = None
 

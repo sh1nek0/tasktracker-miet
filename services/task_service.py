@@ -18,16 +18,16 @@ class TaskService:
 
         # Проверяем дату
         try:
-            datetime.strptime(due_date, '%Y-%m-%d')
+            datetime.strptime(due_date, '%d.%m.%Y')
         except ValueError:
-            raise ValueError("Неверный формат даты. Используйте ГГГГ-ММ-ДД")
+            raise ValueError("Неверный формат даты. Используйте ДД.ММ.ГГГГ")
 
         # Рассчитываем дату напоминания если нужно
         reminder_date = None
         if reminder_days:
-            due_dt = datetime.strptime(due_date, '%Y-%m-%d')
+            due_dt = datetime.strptime(due_date, '%d.%m.%Y')
             reminder_dt = due_dt - timedelta(days=reminder_days)
-            reminder_date = reminder_dt.strftime('%Y-%m-%d')
+            reminder_date = reminder_dt.strftime('%d.%m.%Y')
 
         task = Task(
             id=0,
@@ -35,7 +35,7 @@ class TaskService:
             description=description.strip(),
             priority=priority,
             status=Status.PLANNED,
-            created_date=datetime.now().strftime('%Y-%m-%d'),
+            created_date=datetime.now().strftime('%d.%m.%Y'),
             due_date=due_date,
             reminder_date=reminder_date,
             reminder_sent=False
@@ -74,7 +74,7 @@ class TaskService:
             return False
 
         task.status = Status.COMPLETED
-        task.completed_date = datetime.now().strftime('%Y-%m-%d')
+        task.completed_date = datetime.now().strftime('%d.%m.%Y')
         return self.update_task(task)
 
     def change_status(self, task_id: int, status: Status) -> bool:
@@ -86,7 +86,7 @@ class TaskService:
 
         # Если задача выполнена - ставим дату выполнения
         if status == Status.COMPLETED and not task.completed_date:
-            task.completed_date = datetime.now().strftime('%Y-%m-%d')
+            task.completed_date = datetime.now().strftime('%d.%m.%Y')
         elif status != Status.COMPLETED:
             task.completed_date = None
 
