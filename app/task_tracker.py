@@ -17,7 +17,10 @@ class TaskTracker:
         
         # Переменные для сортировки и фильтрации
         self.sort_by_due_date = False
+        self.sort_by_priority = False
+        self.sort_by_created_date = False
         self.priority_filter = None
+        self.status_filter = None
         
         self.setup_gui()
 
@@ -45,25 +48,70 @@ class TaskTracker:
                    command=self.delete_task).pack(side=tk.LEFT, padx=5)
         ttk.Button(control_frame, text="Просроченные",
                    command=self.show_overdue_notifications).pack(side=tk.LEFT, padx=5)
-        ttk.Button(control_frame, text="Сортировка по сроку",
-                   command=self.toggle_sort_by_due_date).pack(side=tk.LEFT, padx=5)
-        ttk.Button(control_frame, text="Фильтр по приоритету",
-                   command=self.toggle_priority_filter).pack(side=tk.LEFT, padx=5)
+        ttk.Button(control_frame, text="Экспорт в JSON",
+                   command=self.export_to_json).pack(side=tk.LEFT, padx=5)
+        # Вторая строка кнопок для сортировки и фильтров
+        filter_frame = ttk.Frame(self.root)
+        filter_frame.pack(pady=5)
+        
+        ttk.Label(filter_frame, text="Сортировка:").pack(side=tk.LEFT, padx=5)
+        ttk.Button(filter_frame, text="По сроку",
+                   command=self.toggle_sort_by_due_date).pack(side=tk.LEFT, padx=2)
+        ttk.Button(filter_frame, text="По приоритету",
+                   command=self.toggle_sort_by_priority).pack(side=tk.LEFT, padx=2)
+        ttk.Button(filter_frame, text="По дате создания",
+                   command=self.toggle_sort_by_created_date).pack(side=tk.LEFT, padx=2)
+        
+        ttk.Label(filter_frame, text="Фильтры:").pack(side=tk.LEFT, padx=(20, 5))
+        ttk.Button(filter_frame, text="По приоритету",
+                   command=self.toggle_priority_filter).pack(side=tk.LEFT, padx=2)
+        ttk.Button(filter_frame, text="По статусу",
+                   command=self.toggle_status_filter).pack(side=tk.LEFT, padx=2)
+        
         ttk.Button(control_frame, text="Обновить",
                    command=self.refresh_tasks).pack(side=tk.LEFT, padx=5)
 
-        # Список задач
-        self.tree = ttk.Treeview(self.root, columns=("Title", "Status", "Priority", "Due"), show="headings")
+        # Список задач (добавляем скрытую колонку ID для надежной идентификации)
+        self.tree = ttk.Treeview(self.root, columns=("ID", "Title", "Status", "Priority", "Due"), show="headings")
         self.tree.heading("Title", text="Название")
         self.tree.heading("Status", text="Статус")
         self.tree.heading("Priority", text="Приоритет")
         self.tree.heading("Due", text="Срок")
+        
+        # Скрываем колонку ID
+        self.tree.column("ID", width=0, stretch=False)
+        
+        # Настройка цветов для просроченных задач
+        self.tree.tag_configure("overdue", foreground="red", background="#ffe6e6")
+        self.tree.tag_configure("completed", foreground="gray")
+        self.tree.tag_configure("high_priority", foreground="darkred")
+        self.tree.tag_configure("medium_priority", foreground="darkorange")
+        self.tree.tag_configure("low_priority", foreground="darkgreen")
 
         self.tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
     def toggle_sort_by_due_date(self):
         """Переключает сортировку по дате срока"""
         self.sort_by_due_date = not self.sort_by_due_date
+        if self.sort_by_due_date:
+            self.sort_by_priority = False
+            self.sort_by_created_date = False
+        self.refresh_tasks()
+
+    def toggle_sort_by_priority(self):
+        """Переключает сортировку по приоритету"""
+        self.sort_by_priority = not self.sort_by_priority
+        if self.sort_by_priority:
+            self.sort_by_due_date = False
+            self.sort_by_created_date = False
+        self.refresh_tasks()
+
+    def toggle_sort_by_created_date(self):
+        """Переключает сортировку по дате создания"""
+        self.sort_by_created_date = not self.sort_by_created_date
+        if self.sort_by_created_date:
+            self.sort_by_due_date = False
+            self.sort_by_priority = False
         self.refresh_tasks()
 
     def toggle_priority_filter(self):
@@ -78,6 +126,18 @@ class TaskTracker:
             self.priority_filter = None
         self.refresh_tasks()
 
+    def toggle_status_filter(self):
+        """Переключает фильтр по статусу: Все -> Запланирована -> В работе -> Выполнена -> Все"""
+        if self.status_filter is None:
+            self.status_filter = Status.PLANNED
+        elif self.status_filter == Status.PLANNED:
+            self.status_filter = Status.IN_PROGRESS
+        elif self.status_filter == Status.IN_PROGRESS:
+            self.status_filter = Status.COMPLETED
+        else:
+            self.status_filter = None
+        self.refresh_tasks()
+
     def refresh_tasks(self):
         # Очищаем список
         for item in self.tree.get_children():
@@ -90,22 +150,46 @@ class TaskTracker:
         if self.priority_filter:
             tasks = self.task_service.filter_tasks(tasks, priority=self.priority_filter)
         
-        # Применяем сортировку по дате срока если включена
+        # Применяем фильтрацию по статусу если включена
+        if self.status_filter:
+            tasks = self.task_service.filter_tasks(tasks, status=self.status_filter)
+        
+        # Применяем сортировку
         if self.sort_by_due_date:
             tasks = self.task_service.sort_tasks(tasks, "due_date")
+        elif self.sort_by_priority:
+            tasks = self.task_service.sort_tasks(tasks, "priority")
+        elif self.sort_by_created_date:
+            tasks = self.task_service.sort_tasks(tasks, "created_date")
         
         # Отображаем задачи
         for task in tasks:
             status_text = task.status.value
-            if task.is_overdue() and task.status.value != "Выполнена":
+            tags = []
+            
+            # Определяем теги для цветового выделения
+            if task.is_overdue() and task.status != Status.COMPLETED:
                 status_text = f"{task.status.value} (ПРОСРОЧЕНО)"
+                tags.append("overdue")
+            
+            if task.status == Status.COMPLETED:
+                tags.append("completed")
+            
+            # Цветовое выделение по приоритету
+            if task.priority == Priority.HIGH:
+                tags.append("high_priority")
+            elif task.priority == Priority.MEDIUM:
+                tags.append("medium_priority")
+            elif task.priority == Priority.LOW:
+                tags.append("low_priority")
 
             self.tree.insert("", tk.END, values=(
+                task.id,  # ID для надежной идентификации
                 task.title,
                 status_text,
                 task.priority.value,
                 task.due_date
-            ))
+            ), tags=tags if tags else [])
 
     def create_task(self):
         # Диалог создания задачи
@@ -165,15 +249,10 @@ class TaskTracker:
             return
 
         item = selected[0]
-        task_title = self.tree.item(item)['values'][0]
+        task_id = self.tree.item(item)['values'][0]  # Получаем ID из скрытой колонки
         
-        # Находим задачу по названию
-        tasks = self.task_service.get_all_tasks()
-        task_to_edit = None
-        for task in tasks:
-            if task.title == task_title:
-                task_to_edit = task
-                break
+        # Находим задачу по ID (более надежно, чем по названию)
+        task_to_edit = self.task_service.get_task(task_id)
         
         if not task_to_edit:
             messagebox.showerror("Ошибка", "Задача не найдена")
@@ -263,20 +342,15 @@ class TaskTracker:
         selected = self.tree.selection()
         if selected:
             item = selected[0]
-            task_title = self.tree.item(item)['values'][0]
+            task_id = self.tree.item(item)['values'][0]  # Получаем ID из скрытой колонки
             
-            # Находим задачу по названию
-            tasks = self.task_service.get_all_tasks()
-            task_to_complete = None
-            for task in tasks:
-                if task.title == task_title:
-                    task_to_complete = task
-                    break
+            # Находим задачу по ID
+            task_to_complete = self.task_service.get_task(task_id)
             
             if task_to_complete:
                 success = self.task_service.complete_task(task_to_complete.id)
                 if success:
-                    messagebox.showinfo("Успех", f"Задача '{task_title}' отмечена как выполненная")
+                    messagebox.showinfo("Успех", f"Задача '{task_to_complete.title}' отмечена как выполненная")
                 else:
                     messagebox.showerror("Ошибка", "Не удалось обновить задачу")
             else:
@@ -290,25 +364,16 @@ class TaskTracker:
         selected = self.tree.selection()
         if selected:
             item = selected[0]
-            task_title = self.tree.item(item)['values'][0]
+            task_id = self.tree.item(item)['values'][0]  # Получаем ID из скрытой колонки
+            task_title = self.tree.item(item)['values'][1]  # Название для отображения
             
             if messagebox.askyesno("Подтверждение", f"Удалить задачу '{task_title}'?"):
-                # Находим задачу по названию
-                tasks = self.task_service.get_all_tasks()
-                task_to_delete = None
-                for task in tasks:
-                    if task.title == task_title:
-                        task_to_delete = task
-                        break
-                
-                if task_to_delete:
-                    success = self.task_service.delete_task(task_to_delete.id)
-                    if success:
-                        messagebox.showinfo("Успех", f"Задача '{task_title}' удалена")
-                    else:
-                        messagebox.showerror("Ошибка", "Не удалось удалить задачу")
+                # Удаляем задачу по ID
+                success = self.task_service.delete_task(task_id)
+                if success:
+                    messagebox.showinfo("Успех", f"Задача '{task_title}' удалена")
                 else:
-                    messagebox.showerror("Ошибка", "Задача не найдена")
+                    messagebox.showerror("Ошибка", "Не удалось удалить задачу")
                 
                 self.refresh_tasks()
         else:
@@ -321,6 +386,31 @@ class TaskTracker:
             self.notification_service.show_overdue_notification(overdue_tasks)
         else:
             messagebox.showinfo("Информация", "У вас нет просроченных задач!")
+
+    def export_to_json(self):
+        """Экспортирует все задачи в файл JSON (требование ТЗ 5.5.1)"""
+        from tkinter import filedialog
+        import json
+        
+        # Запрашиваем путь для сохранения файла
+        filename = filedialog.asksaveasfilename(
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+            title="Сохранить задачи в JSON"
+        )
+        
+        if filename:
+            try:
+                # Получаем JSON строку из базы данных
+                json_data = self.db.export_to_json()
+                
+                # Сохраняем в файл
+                with open(filename, 'w', encoding='utf-8') as f:
+                    f.write(json_data)
+                
+                messagebox.showinfo("Успех", f"Задачи успешно экспортированы в файл:\n{filename}")
+            except Exception as e:
+                messagebox.showerror("Ошибка", f"Не удалось экспортировать задачи:\n{str(e)}")
 
     def run(self):
         # Проверяем напоминания при запуске
