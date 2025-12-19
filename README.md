@@ -19,7 +19,7 @@
 ### Требования
 - Python 3.7+
 - tkinter (обычно входит в стандартную поставку Python)
-
+- customtrkinter (улучшенная версия tkinter [опционально])
 ### Установка зависимостей
 ```bash
 pip install -r requirements.txt
@@ -98,6 +98,8 @@ tasktracker-miet/
 ├── app/                    # GUI приложение
 │   ├── main.py            # Основное окно приложения
 │   ├── create_database.py # Скрипт создания базы данных
+    |── task_tracker.py    # Скрипт для работы с Tkinter
+    |── task_tracker_modern.py # Скрипт для работы с Customtkinter
 │   └── view_database.py   # Просмотр базы данных
 ├── core/                  # Основная логика
 │   ├── models.py          # Модели данных (Task, Status, Priority)
